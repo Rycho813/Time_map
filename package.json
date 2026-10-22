@@ -1,0 +1,10 @@
+{
+  "name": "time-map-v1",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "仅用于在电脑执行自动测试；部署和使用本应用不需要安装 Node.js。",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

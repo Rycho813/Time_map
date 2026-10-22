@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  文件作用：整款应用的唯一网页入口。负责摆放按钮、统计区和弹窗；
+  具体行为由 js/app.js 控制，外观由 styles.css 控制。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8fb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="时间去向">
+  <meta name="description" content="用到达和离开两次操作记录地点停留时间与路程时间。数据保存在本机。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>时间去向 · 地点与路程</title>
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <main id="app" class="shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">PRIVATE · LOCAL FIRST</p>
+        <h1>时间去向</h1>
+        <p class="subhead">到达 · 离开 · 回看一天</p>
+      </div>
+      <span class="header-mark" aria-hidden="true">⌁</span>
+    </header>
+
+    <div id="notice" class="notice" role="status" hidden></div>
+
+    <section class="card active-card" aria-labelledby="active-heading">
+      <div class="section-heading">
+        <h2 id="active-heading">当前状态</h2>
+        <span id="active-badge" class="state-badge">未开始</span>
+      </div>
+      <div id="active-title" class="active-title">还没有开始记录</div>
+      <p id="active-since" class="subtle">选择下方地点，点击「到达」。</p>
+      <div id="active-clock" class="running-clock" aria-live="off">00:00:00</div>
+      <button id="leave-btn" class="button danger full" type="button" disabled>离开当前地点 · 开始路程</button>
+      <p id="action-hint" class="helper">选择地点后，系统自动保存开始时间。</p>
+    </section>
+
+    <section class="card" aria-labelledby="quick-heading">
+      <div class="section-heading">
+        <h2 id="quick-heading">常用地点</h2>
+        <span class="small-muted">轻触即到达</span>
+      </div>
+      <div id="quick-places" class="quick-grid"></div>
+      <form id="add-place-form" class="input-line" autocomplete="off">
+        <label for="new-place" class="visually-hidden">新地点名称</label>
+        <input id="new-place" maxlength="36" placeholder="新增地点，例如：家、图书馆" required>
+        <button class="button secondary" type="submit">添加</button>
+      </form>
+      <p id="quick-hint" class="helper">没有地点时，先添加一个。</p>
+    </section>
+
+    <section class="card" aria-labelledby="report-heading">
+      <div class="section-heading report-heading">
+        <h2 id="report-heading">每日报告</h2>
+        <button id="today-btn" class="button text-button" type="button">回到今天</button>
+      </div>
+      <div class="date-nav">
+        <button id="prev-day" class="icon-button" type="button" aria-label="上一天">‹</button>
+        <label for="day-select" class="visually-hidden">选择报告日期</label>
+        <input id="day-select" type="date" aria-label="选择日期">
+        <button id="next-day" class="icon-button" type="button" aria-label="下一天">›</button>
+      </div>
+      <div id="day-summary" class="summary"></div>
+    </section>
+
+    <section class="card" aria-labelledby="timeline-heading">
+      <div class="section-heading">
+        <h2 id="timeline-heading">纵向时间轴</h2>
+        <span class="small-muted">按开始时间排列</span>
+      </div>
+      <div id="timeline" class="timeline"></div>
+      <p class="helper">点击「修改」可校正时间；相连记录的边界会一起调整。删除后出现的空白时间不计入统计。</p>
+    </section>
+
+    <details class="card settings">
+      <summary>管理地点与数据 <span class="small-muted">展开设置</span></summary>
+      <div class="settings-body">
+        <h3>地点管理</h3>
+        <div id="manage-places"></div>
+        <p class="helper">改名会更新此地点在历史报告中的显示名称；删除仅移除快捷入口，已有记录保留。</p>
+        <h3>备份和恢复</h3>
+        <div class="button-row">
+          <button id="export-btn" type="button" class="button secondary">导出 JSON 备份</button>
+          <button id="import-btn" type="button" class="button secondary">导入备份恢复</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+        <p class="helper">备份文件请存到「文件」或 iCloud Drive。导入会替换本设备上的全部地点和记录。</p>
+        <p class="privacy-note">个人记录只保存在当前浏览器／主屏幕网页应用的本机存储，不会上传到 GitHub。卸载应用、清理网站数据或系统清理存储可能导致丢失，请定期导出备份。</p>
+      </div>
+    </details>
+    <footer>V1 · 不需要账户、不需要服务器、不追踪定位</footer>
+  </main>
+
+  <section id="fatal" class="fatal" hidden>
+    <h1>无法读取本机记录</h1>
+    <p id="fatal-message">本机存储的数据格式不正确。为避免覆盖原始数据，应用已暂停编辑。</p>
+    <button id="fatal-export" class="button secondary" type="button">下载原始数据以备排查</button>
+  </section>
+
+  <dialog id="edit-dialog" aria-labelledby="edit-heading">
+    <form id="edit-form" class="edit-form">
+      <div class="section-heading"><h2 id="edit-heading">修改时间记录</h2><button id="close-dialog" type="button" class="plain-close" aria-label="关闭">×</button></div>
+      <label>记录类型
+        <select id="edit-kind">
+          <option value="place">地点停留</option>
+          <option value="transit">路程</option>
+        </select>
+      </label>
+      <label id="edit-place-row">地点
+        <select id="edit-place"></select>
+      </label>
+      <label>开始时间（精确到秒）
+        <input id="edit-start" type="datetime-local" step="1" required>
+      </label>
+      <label id="edit-end-row">结束时间（精确到秒）
+        <input id="edit-end" type="datetime-local" step="1">
+      </label>
+      <p id="edit-note" class="helper">调整相连记录的起止边界，会同步改变相邻记录，避免重复统计。</p>
+      <div class="button-row actions-end"><button id="cancel-edit" class="button secondary" type="button">取消</button><button class="button primary" type="submit">保存修改</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

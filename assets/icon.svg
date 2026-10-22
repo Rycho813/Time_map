@@ -1,0 +1,8 @@
+<!-- 文件作用：APP 的矢量图标源文件。manifest 的 PNG 图标由本文件绘制。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="120" fill="#172b42"/>
+  <circle cx="256" cy="256" r="156" fill="none" stroke="#94d8cf" stroke-width="18"/>
+  <path d="M256 130 V260 L343 303" fill="none" stroke="#ffffff" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="22" fill="#94d8cf"/>
+  <circle cx="140" cy="368" r="30" fill="#f8be6b" stroke="#172b42" stroke-width="10"/>
+</svg>

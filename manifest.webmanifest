@@ -1,0 +1,16 @@
+{
+  "name": "时间去向 · 地点与路程",
+  "short_name": "时间去向",
+  "description": "通过到达和离开记录地点停留、行程和每日时间轴。数据只保存在本机。",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#f6f8fb",
+  "lang": "zh-CN",
+  "icons": [
+    {"src": "./assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

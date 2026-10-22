@@ -1,0 +1,99 @@
+/*
+ * 文件作用：唯一的样式表。控制字体、间距、配色、按钮、时间轴、弹窗，以及 iPhone 小屏适配。
+ * 更换视觉风格主要修改此文件，不需要改任何计时逻辑。
+ */
+:root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:#f6f8fb; color:#172b42; }
+* { box-sizing:border-box; }
+body { margin:0; -webkit-tap-highlight-color:transparent; }
+button, input, select { font:inherit; }
+button { cursor:pointer; }
+button:disabled { cursor:not-allowed; opacity:.48; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline:3px solid #53a99c; outline-offset:3px; }
+.shell { width:min(100%,780px); margin:0 auto; padding:calc(22px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom)); }
+.app-header { display:flex; align-items:center; justify-content:space-between; padding:0 5px 15px; }
+.eyebrow { color:#4f8c83; font-size:11px; letter-spacing:2px; font-weight:800; margin:0 0 5px; }
+h1 { margin:0; font-size:29px; letter-spacing:.4px; }
+.subhead { margin:4px 0 0; color:#768396; font-size:13px; }
+.header-mark { width:47px; height:47px; border-radius:16px; background:#172b42; color:#a9efe0; display:grid; place-items:center; font-size:29px; }
+.card { border:1px solid #e7ebf0; border-radius:17px; padding:18px; margin-bottom:12px; background:#fff; box-shadow:0 3px 15px rgba(17,40,65,.025); }
+.section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+h2 { font-size:16px; margin:0; line-height:1.5; }
+h3 { font-size:14px; margin:17px 0 9px; }
+.small-muted { color:#83909e; font-size:12px; }
+.active-card { background:#f9fdfc; border-color:#d6e8e3; }
+.state-badge { font-size:11px; background:#e8edf1; color:#657386; padding:5px 9px; border-radius:99px; white-space:nowrap; }
+.state-badge.place { background:#d9f2eb; color:#166a59; }
+.state-badge.transit { background:#fff1dc; color:#8b580e; }
+.active-title { font-size:24px; font-weight:760; letter-spacing:.2px; min-height:34px; }
+.subtle { color:#8090a0; margin:4px 0 0; font-size:12px; }
+.running-clock { font-size:42px; font-weight:760; letter-spacing:1.5px; margin:9px 0 15px; font-variant-numeric:tabular-nums; }
+.button { border:0; border-radius:11px; padding:11px 14px; font-size:13px; font-weight:650; min-height:44px; }
+.button.full { width:100%; }
+.button.danger { background:#173148; color:#fff; }
+.button.primary { background:#195f5b; color:#fff; }
+.button.secondary { background:#eef3f5; color:#284359; }
+.button.text-button { background:transparent; min-height:32px; padding:6px; color:#227c72; font-size:12px; }
+.helper { font-size:11.5px; color:#8a97a5; line-height:1.6; margin:10px 0 0; }
+.quick-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.quick-place { background:#f1f6f7; border:1px solid #e1e9ea; text-align:left; border-radius:12px; padding:11px 12px; min-height:52px; color:#223e4e; font-weight:650; overflow-wrap:anywhere; }
+.quick-place:disabled { background:#f7f9fa; }
+.quick-place .quick-mini { display:block; color:#668480; font-weight:500; font-size:10px; margin-top:3px; }
+.input-line { display:flex; gap:8px; margin-top:11px; }
+.input-line input { flex:1; min-width:0; height:44px; padding:0 12px; border:1px solid #dce5ea; border-radius:10px; background:white; font-size:13px; }
+.date-nav { display:flex; gap:9px; align-items:center; justify-content:center; margin-bottom:15px; }
+.date-nav input { min-width:0; width:min(100%,230px); height:42px; border:1px solid #e2e8ed; border-radius:10px; background:#f7f9fb; padding:0 10px; color:#273e50; text-align:center; }
+.icon-button { border:1px solid #e2e8ed; background:#f7f9fb; border-radius:10px; font-size:26px; height:42px; width:47px; color:#37566a; line-height:1; }
+.summary-overview { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:12px; border-radius:13px; background:#f6f9fb; margin-bottom:13px; }
+.stat { text-align:center; min-width:0; }
+.stat:not(:last-child) { border-right:1px solid #e5ebef; }
+.stat-value { font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.stat-label { font-size:11px; color:#8794a1; margin-top:4px; }
+.summary-title { color:#64778a; font-size:12px; margin:8px 0; font-weight:700; }
+.summary-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px 12px; margin-bottom:11px; }
+.summary-row:last-child { margin-bottom:0; }
+.summary-name { font-size:13px; font-weight:600; min-width:0; overflow-wrap:anywhere; }
+.summary-duration { font-weight:700; font-size:13px; font-variant-numeric:tabular-nums; }
+.meter { grid-column:1/-1; height:6px; background:#eff3f5; border-radius:8px; overflow:hidden; }
+.meter-fill { background:#5cac9d; height:100%; border-radius:8px; }
+.meter-fill.transit { background:#e8b068; }
+.empty { color:#8292a2; text-align:center; background:#f8fafb; padding:26px 10px; font-size:13px; border-radius:13px; }
+.timeline { border-left:2px solid #e4ebe9; margin-left:9px; padding:1px 0 1px 15px; }
+.timeline-item { position:relative; border:1px solid #e8edf0; border-radius:12px; padding:11px 12px; margin:0 0 10px; background:white; }
+.timeline-item:last-child { margin-bottom:0; }
+.timeline-item::before { content:""; width:10px; height:10px; position:absolute; left:-21px; top:18px; background:#4eac9b; border-radius:100%; border:2px solid #fff; box-shadow:0 0 0 1px #4eac9b; }
+.timeline-item.transit::before { background:#e8af66; box-shadow:0 0 0 1px #e8af66; }
+.timeline-top { display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }
+.timeline-times { font-size:12px; color:#647586; font-variant-numeric:tabular-nums; }
+.timeline-title { font-weight:750; font-size:14px; color:#1e3549; overflow-wrap:anywhere; }
+.timeline-duration { margin-left:auto; font-size:12px; color:#647586; white-space:nowrap; }
+.timeline-actions { display:flex; gap:12px; margin-top:7px; }
+.link-action { border:0; background:transparent; padding:2px 0; color:#247b70; font-size:12px; }
+.link-action.remove { color:#b15c53; }
+.settings { padding:0; }
+.settings summary { display:flex; justify-content:space-between; cursor:pointer; padding:17px 18px; font-weight:700; font-size:15px; }
+.settings summary::marker { content:""; }
+.settings summary::-webkit-details-marker { display:none; }
+.settings[open] summary { border-bottom:1px solid #edf0f2; }
+.settings-body { padding:1px 18px 18px; }
+.manage-place { display:flex; gap:8px; align-items:center; padding:9px 0; border-bottom:1px solid #edf1f3; }
+.manage-name { flex:1; font-size:13px; overflow-wrap:anywhere; min-width:0; }
+.manage-place .link-action { white-space:nowrap; }
+.button-row { display:flex; gap:8px; flex-wrap:wrap; }
+.privacy-note { font-size:11px; line-height:1.65; margin:12px 0 0; color:#9a6570; }
+footer { font-size:11px; color:#99a4ae; text-align:center; padding:5px 0; }
+.notice { padding:12px 14px; border-radius:12px; background:#fff4db; color:#785513; margin-bottom:12px; font-size:13px; line-height:1.5; }
+.notice.error { background:#fdeae9; color:#a23b36; }
+dialog { border:0; border-radius:18px; padding:20px; width:min(95vw,450px); max-height:calc(100dvh - 20px); overflow:auto; box-shadow:0 25px 80px #10293b40; }
+dialog::backdrop { background:rgba(10,24,38,.5); }
+.edit-form { display:grid; gap:13px; }
+.edit-form .section-heading { margin:0 0 2px; }
+.edit-form label { display:grid; gap:6px; color:#516578; font-size:13px; font-weight:650; }
+.edit-form input, .edit-form select { width:100%; border:1px solid #dce5ea; padding:10px; min-height:43px; background:#fff; border-radius:10px; font-size:14px; color:#223f55; }
+.edit-form .helper { margin:0; }
+.actions-end { justify-content:flex-end; }
+.plain-close { background:transparent; border:0; font-size:26px; color:#697e8e; }
+.fatal { width:min(95%,570px); margin:60px auto; background:white; padding:25px; border-radius:18px; }
+.fatal p { line-height:1.7; }
+.visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+[hidden] { display:none !important; }
+@media(max-width:370px) { .shell { padding-left:11px; padding-right:11px; } .card { padding:13px; } .running-clock { font-size:35px; } .summary-overview { padding:9px 4px; } .stat-value { font-size:13px; } }
