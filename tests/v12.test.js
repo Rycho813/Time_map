@@ -25,3 +25,13 @@ test('显式恢复先拉取云端分页再重建基线，不丢本地待恢复�
  await reconcile(async()=>{calls++;return calls===1?{items:[{revision:1,operations:[{table:'places',action:'upsert',id:'p',value:{id:'p',name:'图书馆'}}]}],next_cursor:1,revision:2,has_more:true}:{items:[{revision:2,operations:[]}],next_cursor:2,revision:2,has_more:false};});
  assert.equal(calls,2);assert.equal(syncEnvelope().revision,2);assert.equal(syncEnvelope().queue.length,0);assert.equal(syncEnvelope().state.segments.length,1);assert.equal(syncEnvelope().restoreDeleted,true);
 });
+test('大批次拆分暂存后一次提交，重试不拆断关联边界',async()=>{
+ setup();loadState();const state=emptyState();state.segments=Array.from({length:1100},(_,i)=>({id:String(i),kind:'transit',start:i*2,end:i*2+1}));saveState(state);
+ const calls=[];const c=new SyncClient(async(path,body)=>{calls.push({path,body});return {revision:1};});await c.sync();
+ assert.equal(calls.filter(c=>c.path.includes('/stage/')).length,3);assert.equal(calls.at(-1).body.parts,3);assert.equal(syncEnvelope().revision,1);
+});
+test('分页恢复固定目标版本并携带操作游标',async()=>{
+ setup();loadState();let count=0;const paths=[];
+ await reconcile(async path=>{paths.push(path);return ++count===1?{items:[],revision:2,next_cursor:0,after:100,has_more:true}:{items:[],revision:2,next_cursor:2,after:101,has_more:false};});
+ assert.match(paths[1],/target=2&after=100/);assert.equal(syncEnvelope().revision,2);
+});

@@ -12,11 +12,15 @@ export function wireRange(getState) {
   }
   selectDay(-1);
   function bounds() { return [parseLocalDateTime($('range-start').value), parseLocalDateTime($('range-end').value)]; }
+  let saved;
+  try { saved=JSON.parse(sessionStorage.getItem('time-map-connection') || 'null'); } catch { sessionStorage.removeItem('time-map-connection'); }
+  if (saved) { $('api-base').value=saved.base; $('api-token').value=saved.token; }
   function connected() {
     const next = `${$('api-base').value}\n${$('api-token').value}`;
     if (!client || next !== identity) {
       api = createApi($('api-base').value, $('api-token').value);
       client = new SyncClient(api); identity = next;
+      sessionStorage.setItem('time-map-connection',JSON.stringify({base:$('api-base').value,token:$('api-token').value}));
     }
     return client;
   }
@@ -87,21 +91,26 @@ export function wireRange(getState) {
     lines.push(`全部路程：${formatDuration(report.transit_ms)}`, ...report.warnings);
     $('range-output').textContent = lines.join('\n');
   }
-  $('report-history').addEventListener('click',run(async () => {
+  async function loadHistory(offset=0) {
     connected();
-    const history = await api('/v1/reports');
-    const list = $('history-list'); list.replaceChildren();
+    const history = await api(`/v1/reports?offset=${offset}&limit=20`);
+    const list = $('history-list'); if (!offset) list.replaceChildren();
     for (const item of history.items) {
       const button = document.createElement('button'); button.className = 'button secondary';
       button.textContent = `${toLocalDateTime(item.start)} — ${toLocalDateTime(item.end)} · ${item.mode === 'location' ? '地点时间流' : '活动效率'}`;
       button.addEventListener('click',() => { renderReport(item); $('range-status').textContent = '已有报告原样展示，未读取Notion或重新分析。'; });
       list.append(button);
     }
-    if (!history.items.length) list.textContent = '暂无已生成报告。';
-  }));
+    if (!history.items.length && !offset) list.textContent = '暂无已生成报告。';
+    if (history.items.length===20) {
+      const more=document.createElement('button');more.className='button secondary';more.textContent='加载更多报告';
+      more.addEventListener('click',run(async()=>{more.remove();await loadHistory(offset+20);}));list.append(more);
+    }
+  }
+  $('report-history').addEventListener('click',run(()=>loadHistory()));
   $('restore-deleted').addEventListener('click',run(async () => {
     if (!confirm('只在你确认要恢复备份中已删除的记录时使用。建议先导出当前备份。是否授权下一批恢复？')) return;
-    connected(); backupLocal(); await reconcile(api); await sync();
+    connected(); backupLocal(); if (!confirm('请确认JSON备份已经保存。确认后才恢复本地记录。')) return; await reconcile(api); await sync();
   }));
   function backupLocal() {
     const url = URL.createObjectURL(new Blob([JSON.stringify({format:'time-map-backup-v2',state:getState()})],{type:'application/json'}));
@@ -109,14 +118,15 @@ export function wireRange(getState) {
   }
   $('use-cloud').addEventListener('click',run(async () => {
     if (!confirm('将先导出本地备份，再用云端副本替换本机记录并清除待上传项。确认采用云端？')) return;
-    connected();backupLocal();await reconcile(api,true);location.reload();
+    connected();backupLocal();if (!confirm('请确认下载的JSON备份已经保存。确认后才采用云端。')) return;await reconcile(api,true);location.reload();
   }));
   $('rotate-token').addEventListener('click',run(async () => {
     connected(); const result = await api('/v1/device/rotate',{});
-    $('api-token').value = result.token; client = null;
+    $('api-token').value = result.token; client = null;connected();
     $('sync-status').textContent = '旧凭据已撤销，新凭据已填入本次页面，请安全保存。';
   }));
   window.addEventListener('online',changed);
   document.addEventListener('visibilitychange',() => { if (!document.hidden) changed(); });
+  changed();
   return { changed };
 }

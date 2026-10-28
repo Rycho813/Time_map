@@ -14,7 +14,12 @@ const assert=require('node:assert/strict');
   await page.context().setOffline(true);await page.locator('#range-copy').click();assert.match(await page.locator('#range-output').textContent(),/time-map-log-v1.2/);await page.context().setOffline(false);
   await page.locator('summary').filter({hasText:'连接本地模拟服务'}).click();
   await page.locator('#api-base').fill('http://127.0.0.1:8100');await page.locator('#api-token').fill('local-only-mock-token');
+  // Rebase only synthetic fixtures so the local test can be repeated without deleting its DB.
+  await page.evaluate(async()=>{const {reconcile,createApi}=await import('/js/sync.js');await reconcile(createApi('http://127.0.0.1:8100','local-only-mock-token'));});
   await page.locator('#sync-now').click();await page.waitForFunction(()=>document.querySelector('#sync-status').textContent.startsWith('已同步'));
+  await page.reload();
+  assert.equal(await page.locator('#api-base').inputValue(),'http://127.0.0.1:8100');
+  await page.locator('#range-start').fill('2026-10-28T09:00');await page.locator('#range-end').fill('2026-10-28T12:00');
   await page.locator('#range-mode').selectOption('efficiency');await page.locator('#range-report').click();
   await page.waitForFunction(()=>document.querySelector('#range-status').textContent.includes('模拟数据报告'));
   assert.match(await page.locator('#range-output').textContent(),/有效01:00:00/);
