@@ -97,3 +97,8 @@ dialog::backdrop { background:rgba(10,24,38,.5); }
 .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 [hidden] { display:none !important; }
 @media(max-width:370px) { .shell { padding-left:11px; padding-right:11px; } .card { padding:13px; } .running-clock { font-size:35px; } .summary-overview { padding:9px 4px; } .stat-value { font-size:13px; } }
+
+/* V1.2 区间与报告 */
+.report-output { white-space:pre-wrap; overflow-wrap:anywhere; max-height:32rem; overflow:auto; font-size:13px; }
+#range-heading ~ label, details label { display:block; margin:12px 0; }
+#api-base { width:100%; }

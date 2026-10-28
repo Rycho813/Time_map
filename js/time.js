@@ -6,31 +6,30 @@
 const pad2 = (number) => String(number).padStart(2, '0');
 
 export function localDateKey(date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  const d = new Date(date.getTime() + 8 * 3600000);
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
 }
 
 export function dateFromKey(key) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) throw new Error('日期格式不正确。');
   const [year, month, day] = key.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
+  const d = new Date(Date.UTC(year, month - 1, day) - 8 * 3600000);
   if (localDateKey(d) !== key) throw new Error('日期不存在。');
   return d;
 }
 
 export function moveDay(key, step) {
-  const d = dateFromKey(key);
-  d.setDate(d.getDate() + step);
-  return localDateKey(d);
+  return localDateKey(new Date(dateFromKey(key).getTime() + step * 86400000));
 }
 
 export function toLocalDateTime(timestamp) {
-  const d = new Date(timestamp);
-  return `${localDateKey(d)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  const d = new Date(timestamp + 8 * 3600000);
+  return `${localDateKey(new Date(timestamp))}T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
 }
 
 export function parseLocalDateTime(text) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(text)) throw new Error('请填写完整的日期时间。');
-  const d = new Date(text);
+  const d = new Date(`${text}+08:00`);
   if (!Number.isFinite(d.getTime()) || toLocalDateTime(d.getTime()).slice(0, 16) !== text.slice(0, 16)) {
     throw new Error('日期或时间无效。');
   }
@@ -38,8 +37,8 @@ export function parseLocalDateTime(text) {
 }
 
 export function formatClock(timestamp) {
-  const d = new Date(timestamp);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  const d = new Date(timestamp + 8 * 3600000);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
 }
 
 export function formatDuration(ms) {
@@ -60,8 +59,7 @@ export function readableDuration(ms) {
 // 例如 23:00 到次日 01:00，在前一天显示 1 小时，后一天也显示 1 小时。
 export function segmentsOfDay(segments, dayKey, now = Date.now()) {
   const startOfDay = dateFromKey(dayKey).getTime();
-  const endOfDay = new Date(dateFromKey(dayKey).getFullYear(),
-    dateFromKey(dayKey).getMonth(), dateFromKey(dayKey).getDate() + 1).getTime();
+  const endOfDay = startOfDay + 86400000;
   const results = [];
   for (const s of segments) {
     const realEnd = s.end === null ? Math.max(now, s.start) : s.end;
@@ -92,7 +90,21 @@ export function dayTotals(parts, places) {
 
 export function displayDayClock(timestamp, dayKey, isEnd = false) {
   const d = dateFromKey(dayKey);
-  const nextMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+  const nextMidnight = d.getTime() + 86400000;
   if (isEnd && timestamp === nextMidnight) return '24:00';
   return formatClock(timestamp).slice(0, 5);
+}
+
+// 所有区间使用北京时间、左闭右开；不修改原记录。
+export function validateRange(start, end) {
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end <= start || end - start > 7 * 86400000)
+    throw new Error('请选择有效起止时间，最多连续7天。');
+}
+export function segmentsOfRange(segments, start, end, now = Date.now()) {
+  validateRange(start, end);
+  return segments.flatMap(s => {
+    const left = Math.max(start, s.start);
+    const right = Math.min(end, s.end === null ? Math.max(now, s.start) : s.end);
+    return right > left ? [{ ...s, displayStart: left, displayEnd: right, duration: right - left }] : [];
+  });
 }

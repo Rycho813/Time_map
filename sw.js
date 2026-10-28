@@ -4,10 +4,10 @@
  * 当修改了发布代码时，建议把 CACHE_NAME 的 v1 改成 v2、v3…以方便更新。
  */
 
-const CACHE_NAME = 'time-map-shell-v1';
+const CACHE_NAME = 'time-map-shell-v1.2-dev';
 const FILES = [
   './', './index.html', './styles.css', './js/app.js', './js/time.js',
-  './js/storage.js', './manifest.webmanifest', './assets/icon.svg',
+  './js/storage.js', './js/log-export.js', './js/sync.js', './js/range-ui.js', './manifest.webmanifest', './assets/icon.svg',
   './assets/icon-192.png', './assets/icon-512.png'
 ];
 
@@ -29,6 +29,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (new URL(event.request.url).pathname.includes('/v1/')) return;
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
     try {

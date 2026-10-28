@@ -68,21 +68,37 @@ export function validateState(data) {
   return true;
 }
 
+export const V2_KEY = 'time-map-v2-data';
+function readEnvelope() {
+  const text = localStorage.getItem(V2_KEY);
+  if (text === null) return null;
+  const envelope = JSON.parse(text);
+  if (envelope.version !== 2 || !envelope.state || !Number.isInteger(envelope.revision) || !Array.isArray(envelope.queue)) throw new Error('V2数据损坏，已停止写入。');
+  validateState(envelope.state);
+  return envelope;
+}
 export function loadState() {
+  const envelope = readEnvelope();
+  if (envelope) return envelope.state;
   const text = localStorage.getItem(STORAGE_KEY);
-  if (text === null) return emptyState();
-  let state;
-  try { state = JSON.parse(text); }
-  catch { throw new Error('本机 JSON 数据已经损坏，无法解析。'); }
+  const state = text === null ? emptyState() : JSON.parse(text);
   validateState(state);
+  // 原V1键保持不变；首次同步以完整、显式快照导入空云端。
+  localStorage.setItem(V2_KEY, JSON.stringify({ version: 2, state, revision: 0, acknowledged: emptyState(), queue: [], lastSync: null }));
   return state;
 }
-
 export function saveState(state) {
   validateState(state);
-  // 如果浏览器空间不足或禁用了本地存储，会抛错；调用方会告知用户，没有假装保存成功。
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const envelope = readEnvelope() || { version: 2, revision: 0, acknowledged: emptyState(), queue: [], lastSync: null };
+  envelope.state = state;
+  localStorage.setItem(V2_KEY, JSON.stringify(envelope));
 }
+export function syncEnvelope() { return readEnvelope(); }
+export function persistEnvelope(envelope) {
+  validateState(envelope.state);
+  localStorage.setItem(V2_KEY, JSON.stringify(envelope));
+}
+export function backupState() { return { format: 'time-map-backup-v2', state: loadState() }; }
 
 export function copyState(state) {
   return JSON.parse(JSON.stringify(state));

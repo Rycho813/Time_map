@@ -2,12 +2,15 @@
  * 文件作用：应用总控制器，相当于“指挥员”。
  * 启动时读取 storage.js 的数据，把 time.js 的计算结果画到 index.html；
  * 用户点击到达、离开、修改、备份等按钮时，在这里选择对应操作并保存。
- * 不使用任何外部代码库，也不发送任何个人记录到网络。
+ * 无外部前端框架；只有用户显式连接服务后才同步个人记录。
  */
 
-import { loadState, saveState, copyState, validateState, newId, STORAGE_KEY } from './storage.js';
+import { loadState, saveState, copyState, validateState, newId, STORAGE_KEY, V2_KEY } from './storage.js';
 import { localDateKey, dateFromKey, moveDay, toLocalDateTime, parseLocalDateTime,
   formatClock, formatDuration, readableDuration, segmentsOfDay, dayTotals, displayDayClock } from './time.js';
+
+import { wireRange } from './range-ui.js';
+let rangeTools;
 
 // $ 简写为“在网页里找一个带有指定 id 的元素”。
 const $ = id => document.getElementById(id);
@@ -55,6 +58,7 @@ function commit(change, successText = '已保存') {
     change(draft);
     saveState(draft);
     state = draft;
+    rangeTools?.changed();
     renderAll();
     if (successText) notify(successText);
     return true;
@@ -321,19 +325,21 @@ function download(name, text) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function exportBackup() {
-  download(`时间去向-备份-${localDateKey(new Date())}.json`, JSON.stringify(state, null, 2));
+  download(`时间去向-备份-${localDateKey(new Date())}.json`, JSON.stringify({format: 'time-map-backup-v2', state}, null, 2));
   notify('已生成备份，请确认文件保存到了设备或云盘。');
 }
 async function importBackup(file) {
   if (!file) return;
   try {
     if (file.size > 30 * 1024 * 1024) throw new Error('备份大于 30 MB，请检查文件是否正确。');
-    const data = JSON.parse(await file.text());
+    const parsed = JSON.parse(await file.text());
+    const data = parsed.format === 'time-map-backup-v2' ? parsed.state : parsed;
     validateState(data);
     if (!confirm(`此备份包含 ${data.places.length} 个地点、${data.segments.length} 段记录。\n导入会完全覆盖本机现有记录，建议先导出当前备份。\n确定覆盖吗？`)) return;
     // 写入成功后才替换界面内数据；没有联网步骤。
     saveState(data);
     state = data;
+    rangeTools?.changed();
     renderAll();
     notify('备份已恢复');
   } catch (error) { notify(`导入失败：${error.message}`, true); }
@@ -387,12 +393,13 @@ function start() {
     $('fatal').hidden = false;
     $('fatal-message').textContent = `为避免覆盖历史记录，应用已停止写入。原因：${error.message}`;
     $('fatal-export').addEventListener('click', () => {
-      try { download('时间去向-原始故障数据.json', localStorage.getItem(STORAGE_KEY) || ''); }
+      try { download('时间去向-原始故障数据.json', localStorage.getItem(V2_KEY) || localStorage.getItem(STORAGE_KEY) || ''); }
       catch (e) { alert(`无法下载：${e.message}`); }
     });
     return;
   }
   wireEvents();
+  rangeTools = wireRange(() => state);
   renderAll();
   setInterval(() => {
     const today = localDateKey(new Date());

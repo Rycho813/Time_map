@@ -7,7 +7,7 @@ import test from 'node:test';
 import { dateFromKey, segmentsOfDay, dayTotals, moveDay, localDateKey } from '../js/time.js';
 import { emptyState, validateState } from '../js/storage.js';
 
-function t(time) { return new Date(time).getTime(); }
+function t(time) { return new Date(`${time}+08:00`).getTime(); }
 
 test('初始数据有效', () => { assert.equal(validateState(emptyState()), true); });
 test('跨天停留应分别计入前一天和后一天', () => {
