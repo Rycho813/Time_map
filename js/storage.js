@@ -68,6 +68,7 @@ export function validateState(data) {
   return true;
 }
 
+let lastReadState;
 export const V2_KEY = 'time-map-v2-data';
 function readEnvelope() {
   const text = localStorage.getItem(V2_KEY);
@@ -75,23 +76,27 @@ function readEnvelope() {
   const envelope = JSON.parse(text);
   if (envelope.version !== 2 || !envelope.state || !Number.isInteger(envelope.revision) || !Array.isArray(envelope.queue)) throw new Error('V2数据损坏，已停止写入。');
   validateState(envelope.state);
+  if (envelope.legacy !== undefined && envelope.legacy !== localStorage.getItem(STORAGE_KEY)) throw new Error('旧版页面修改了原数据，请先导出两份数据再恢复，已停止写入。');
   return envelope;
 }
 export function loadState() {
   const envelope = readEnvelope();
-  if (envelope) return envelope.state;
+  if (envelope) { lastReadState = JSON.stringify(envelope.state); return envelope.state; }
   const text = localStorage.getItem(STORAGE_KEY);
   const state = text === null ? emptyState() : JSON.parse(text);
   validateState(state);
   // 原V1键保持不变；首次同步以完整、显式快照导入空云端。
-  localStorage.setItem(V2_KEY, JSON.stringify({ version: 2, state, revision: 0, acknowledged: emptyState(), queue: [], lastSync: null }));
+  localStorage.setItem(V2_KEY, JSON.stringify({ version: 2, state, revision: 0, acknowledged: emptyState(), queue: [], lastSync: null, legacy:text }));
+  lastReadState = JSON.stringify(state);
   return state;
 }
 export function saveState(state) {
   validateState(state);
   const envelope = readEnvelope() || { version: 2, revision: 0, acknowledged: emptyState(), queue: [], lastSync: null };
+  if (lastReadState !== undefined && JSON.stringify(envelope.state) !== lastReadState) throw new Error('另一个页面已修改记录，请刷新后再操作。');
   envelope.state = state;
   localStorage.setItem(V2_KEY, JSON.stringify(envelope));
+  lastReadState = JSON.stringify(envelope.state);
 }
 export function syncEnvelope() { return readEnvelope(); }
 export function persistEnvelope(envelope) {
@@ -102,4 +107,10 @@ export function backupState() { return { format: 'time-map-backup-v2', state: lo
 
 export function copyState(state) {
   return JSON.parse(JSON.stringify(state));
+}
+
+export function authorizeRestoreDeleted() {
+  const envelope = readEnvelope();
+  envelope.restoreDeleted = true;
+  persistEnvelope(envelope);
 }

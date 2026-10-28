@@ -18,9 +18,20 @@ const assert=require('node:assert/strict');
   await page.locator('#range-mode').selectOption('efficiency');await page.locator('#range-report').click();
   await page.waitForFunction(()=>document.querySelector('#range-status').textContent.includes('模拟数据报告'));
   assert.match(await page.locator('#range-output').textContent(),/有效01:00:00/);
+  await page.locator('#report-history').click();
+  await page.locator('#history-list button').first().waitFor();
+  await page.locator('#history-list button').first().click();
+  assert.match(await page.locator('#range-status').textContent(),/已有报告原样展示/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   // Existing V1 interactions still work.
   await page.locator('#quick-places button').click();await page.locator('#leave-btn').click();assert.match(await page.locator('#active-title').textContent(),/路程中/);
-  assert.deepEqual(errors,[]);console.log('Browser smoke passed: migration, mobile viewport, offline copy, sync, mock efficiency, arrive/leave');
+  assert.deepEqual(errors,[]);
+  const offlineContext=await browser.newContext({serviceWorkers:'allow'});
+  const offlinePage=await offlineContext.newPage();await offlinePage.goto('http://127.0.0.1:8001');
+  await offlinePage.evaluate(()=>navigator.serviceWorker.ready);
+  await offlinePage.reload();await offlineContext.setOffline(true);await offlinePage.reload();
+  assert.equal(await offlinePage.locator('#range-heading').textContent(),'区间查询 · V1.2');
+  await offlineContext.close();
+  console.log('Browser smoke passed: migration, mobile viewport, offline copy, sync, mock efficiency, arrive/leave');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

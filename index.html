@@ -89,12 +89,16 @@
       <div class="button-row"><button id="range-yesterday" class="button secondary">昨天</button><button id="range-before" class="button secondary">前天</button><button id="range-three" class="button secondary">三天前</button></div>
       <label>模式 <select id="range-mode"><option value="location">地点时间流</option><option value="efficiency">活动效率分析</option></select></label>
       <div class="button-row"><button id="range-show" class="button secondary">查看区间</button><button id="range-copy" class="button secondary">复制地点日志</button><button id="range-report" class="button primary">生成新报告</button></div>
+      <button id="report-history" class="button secondary">查看已有报告</button><div id="history-list"></div>
       <p id="range-status" role="status"></p><pre id="range-output" class="report-output"></pre>
       <details><summary>连接本地模拟服务（不连接真实业务）</summary>
         <p class="helper">本阶段仅支持模拟分析，不发送飞书。凭据仅本次页面保留，不写入备份。</p>
         <label>API地址 <input id="api-base" type="url" placeholder="http://127.0.0.1:8100"></label>
         <label>测试凭据 <input id="api-token" type="password" autocomplete="off"></label>
         <button id="sync-now" class="button secondary">立即同步</button>
+        <button id="restore-deleted" class="button secondary">确认恢复备份中的已删除记录</button>
+        <button id="use-cloud" class="button secondary">冲突恢复：采用云端副本</button>
+        <button id="rotate-token" class="button secondary">更换本设备凭据</button>
         <p id="sync-status" role="status">未连接，本机数据仍正常保存。</p>
       </details>
     </section>

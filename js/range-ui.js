@@ -1,6 +1,6 @@
 import { dateFromKey, localDateKey, moveDay, parseLocalDateTime, toLocalDateTime, segmentsOfRange, dayTotals, formatDuration } from './time.js';
 import { exportLog } from './log-export.js';
-import { SyncClient, createApi } from './sync.js';
+import { SyncClient, createApi, reconcile } from './sync.js';
 import { syncEnvelope, newId } from './storage.js';
 export function wireRange(getState) {
   const $ = id => document.getElementById(id);
@@ -60,9 +60,18 @@ export function wireRange(getState) {
       e = {revision: syncEnvelope().revision}; stale = true;
     }
     $('range-status').textContent = '正在生成独立报告…';
-    const report = await api('/v1/analysis-jobs',{ request_id:newId(), mode:$('range-mode').value, start,end, expected_revision:e.revision, allow_stale:stale });
+    let report = await api('/v1/analysis-jobs',{ request_id:newId(), mode:$('range-mode').value, start,end, expected_revision:e.revision, allow_stale:stale });
+    while (['queued','running'].includes(report.status)) {
+      $('range-status').textContent = report.status === 'queued' ? '任务排队中…' : '正在分析…';
+      await new Promise(resolve => setTimeout(resolve,500));
+      report = await api(`/v1/analysis-jobs/${encodeURIComponent(report.id)}`);
+    }
+    if (report.status !== 'succeeded') throw new Error(report.error || '分析失败');
     $('range-status').textContent = `${report.mock ? '模拟数据报告（未调用Notion/AI/飞书）' : '报告'}，云端版本${report.data_revision}${stale ? '；使用已有云端数据，可能不完整' : ''}`;
-    const lines = [`报告区间：${toLocalDateTime(start)} — ${toLocalDateTime(end)}`, '时区：Asia/Shanghai'];
+    renderReport(report);
+  }));
+  function renderReport(report) {
+    const lines = [`报告区间：${toLocalDateTime(report.start)} — ${toLocalDateTime(report.end)}`, '时区：Asia/Shanghai'];
     for (const day of report.days) {
       lines.push('', day.date);
       for (const p of day.locations) {
@@ -77,6 +86,35 @@ export function wireRange(getState) {
     for (const p of report.locations) lines.push(`${p.name}：停留${formatDuration(p.stay_ms)}${report.mode === 'efficiency' ? `，有效${formatDuration(p.effective_ms)}，利用率${p.utilization === null ? '无法准确确定' : (p.utilization*100).toFixed(1)+'%'}` : ''}`);
     lines.push(`全部路程：${formatDuration(report.transit_ms)}`, ...report.warnings);
     $('range-output').textContent = lines.join('\n');
+  }
+  $('report-history').addEventListener('click',run(async () => {
+    connected();
+    const history = await api('/v1/reports');
+    const list = $('history-list'); list.replaceChildren();
+    for (const item of history.items) {
+      const button = document.createElement('button'); button.className = 'button secondary';
+      button.textContent = `${toLocalDateTime(item.start)} — ${toLocalDateTime(item.end)} · ${item.mode === 'location' ? '地点时间流' : '活动效率'}`;
+      button.addEventListener('click',() => { renderReport(item); $('range-status').textContent = '已有报告原样展示，未读取Notion或重新分析。'; });
+      list.append(button);
+    }
+    if (!history.items.length) list.textContent = '暂无已生成报告。';
+  }));
+  $('restore-deleted').addEventListener('click',run(async () => {
+    if (!confirm('只在你确认要恢复备份中已删除的记录时使用。建议先导出当前备份。是否授权下一批恢复？')) return;
+    connected(); backupLocal(); await reconcile(api); await sync();
+  }));
+  function backupLocal() {
+    const url = URL.createObjectURL(new Blob([JSON.stringify({format:'time-map-backup-v2',state:getState()})],{type:'application/json'}));
+    const a = document.createElement('a');a.href=url;a.download='恢复前本地备份.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  $('use-cloud').addEventListener('click',run(async () => {
+    if (!confirm('将先导出本地备份，再用云端副本替换本机记录并清除待上传项。确认采用云端？')) return;
+    connected();backupLocal();await reconcile(api,true);location.reload();
+  }));
+  $('rotate-token').addEventListener('click',run(async () => {
+    connected(); const result = await api('/v1/device/rotate',{});
+    $('api-token').value = result.token; client = null;
+    $('sync-status').textContent = '旧凭据已撤销，新凭据已填入本次页面，请安全保存。';
   }));
   window.addEventListener('online',changed);
   document.addEventListener('visibilitychange',() => { if (!document.hidden) changed(); });
