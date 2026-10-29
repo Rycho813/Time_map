@@ -322,7 +322,7 @@ function download(name, text) {
   const anchor = document.createElement('a');
   anchor.href = url; anchor.download = name;
   document.body.append(anchor); anchor.click(); anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 function exportBackup() {
   download(`时间去向-备份-${localDateKey(new Date())}.json`, JSON.stringify({format: 'time-map-backup-v2', state}, null, 2));
@@ -399,7 +399,10 @@ function start() {
     return;
   }
   wireEvents();
-  rangeTools = wireRange(() => state);
+  rangeTools = wireRange(() => state, () => {
+    state = loadState();
+    renderAll();
+  });
   renderAll();
   setInterval(() => {
     const today = localDateKey(new Date());

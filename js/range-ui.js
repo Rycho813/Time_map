@@ -2,9 +2,10 @@ import { dateFromKey, localDateKey, moveDay, parseLocalDateTime, toLocalDateTime
 import { exportLog } from './log-export.js';
 import { SyncClient, createApi, reconcile } from './sync.js';
 import { syncEnvelope, newId } from './storage.js';
-export function wireRange(getState) {
+export function wireRange(getState, onRestored = () => {}) {
   const $ = id => document.getElementById(id);
   let client, api, identity, retryTimer, delay = 1000;
+  let paused = false, recovering = false, backupSignature = null;
   function selectDay(offset) {
     const day = moveDay(localDateKey(new Date()), offset);
     const start = dateFromKey(day).getTime();
@@ -16,26 +17,43 @@ export function wireRange(getState) {
   try { saved=JSON.parse(sessionStorage.getItem('time-map-connection') || 'null'); } catch { sessionStorage.removeItem('time-map-connection'); }
   if (saved) { $('api-base').value=saved.base; $('api-token').value=saved.token; }
   function connected() {
-    const next = `${$('api-base').value}\n${$('api-token').value}`;
+    const base = $('api-base').value.trim(), token = $('api-token').value.trim();
+    const next = `${base}\n${token}`;
     if (!client || next !== identity) {
-      api = createApi($('api-base').value, $('api-token').value);
+      api = createApi(base, token);
       client = new SyncClient(api); identity = next;
-      sessionStorage.setItem('time-map-connection',JSON.stringify({base:$('api-base').value,token:$('api-token').value}));
+      sessionStorage.setItem('time-map-connection',JSON.stringify({base,token}));
     }
     return client;
   }
   async function sync() {
+    if (recovering) throw new Error('正在恢复，请等待完成后再同步。');
     $('sync-status').textContent = '同步中…';
     try {
       const e = await connected().sync(); delay = 1000; clearTimeout(retryTimer);
-      $('sync-status').textContent = `已同步，版本${e.revision}，${e.lastSync || '暂无变更'}`;
+      paused = false;
+      $('sync-status').textContent = `已同步，版本${e.revision}，${e.lastSync || '已核对云端，无待上传变更'}`;
       return e;
-    } catch (error) { $('sync-status').textContent = `同步失败：${error.message}；本地记录已保留。`; throw error; }
+    } catch (error) { showSyncError(error); throw error; }
+  }
+  function showSyncError(error) {
+    if ([401,409].includes(error.status)) { paused = true; clearTimeout(retryTimer); }
+    $('sync-status').textContent = `${paused ? '自动同步已暂停' : '同步失败'}：${error.message}；本地记录已保留。`;
+  }
+  function backupMatches() {
+    if (!backupSignature) return false;
+    try { return backupSignature === JSON.stringify(getState()) && backupSignature === JSON.stringify(syncEnvelope().state); }
+    catch { return false; }
   }
   function changed() {
+    if (backupSignature && !backupMatches()) {
+      backupSignature = null; $('recovery-saved').checked = false;
+      $('recovery-status').textContent = '本机记录已改变，请重新导出当前备份。';
+    }
+    if (paused || recovering) return;
     if (!$('api-base').value || !$('api-token').value) return;
     clearTimeout(retryTimer);
-    retryTimer = setTimeout(() => sync().catch(() => { delay = Math.min(delay * 2, 60000); changed(); }), delay);
+    retryTimer = setTimeout(() => sync().catch(() => { if (!paused) { delay = Math.min(delay * 2, 60000); changed(); } }), delay);
   }
   function show() {
     const [start,end] = bounds(); const state = getState();
@@ -45,7 +63,10 @@ export function wireRange(getState) {
     const parts = segmentsOfRange(state.segments,start,end);const totals = dayTotals(parts,state.places);
     $('range-output').textContent = exportLog(state,start,end).split('请完整保留以下识别信息：')[0] + '\n' + totals.locations.map(p => `${p.name}累计：${formatDuration(p.duration)}`).join('\n') + `\n路程总计：${formatDuration(totals.transitMs)}`;
   }
-  function run(action) { return async () => { try { await action(); } catch(e) { $('range-status').textContent = e.message; } }; }
+  function run(action) { return async () => { try { await action(); } catch(e) {
+    $('range-status').textContent = e.message;
+    if ([401,409].includes(e.status)) showSyncError(e);
+  } }; }
   $('range-show').addEventListener('click',run(show));
   $('range-copy').addEventListener('click',run(async () => {
     const text = exportLog(getState(),...bounds());
@@ -108,18 +129,60 @@ export function wireRange(getState) {
     }
   }
   $('report-history').addEventListener('click',run(()=>loadHistory()));
-  $('restore-deleted').addEventListener('click',run(async () => {
-    if (!confirm('只在你确认要恢复备份中已删除的记录时使用。建议先导出当前备份。是否授权下一批恢复？')) return;
-    connected(); backupLocal(); if (!confirm('请确认JSON备份已经保存。确认后才恢复本地记录。')) return; await reconcile(api); await sync();
-  }));
   function backupLocal() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({format:'time-map-backup-v2',state:getState()})],{type:'application/json'}));
-    const a = document.createElement('a');a.href=url;a.download='恢复前本地备份.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const state = getState();
+    if (JSON.stringify(state) !== JSON.stringify(syncEnvelope().state)) throw new Error('另一个页面已修改本机记录，请先刷新后再导出备份。');
+    const url = URL.createObjectURL(new Blob([JSON.stringify({format:'time-map-backup-v2',state})],{type:'application/json'}));
+    const a = document.createElement('a');a.href=url;a.download='恢复前本地备份.json';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    backupSignature = JSON.stringify(state); $('recovery-saved').checked = false;
+    $('recovery-status').textContent = '已发起备份下载；请先在“文件”中确认保存，再勾选下方确认框。';
   }
-  $('use-cloud').addEventListener('click',run(async () => {
-    if (!confirm('将先导出本地备份，再用云端副本替换本机记录并清除待上传项。确认采用云端？')) return;
-    connected();backupLocal();if (!confirm('请确认下载的JSON备份已经保存。确认后才采用云端。')) return;await reconcile(api,true);location.reload();
-  }));
+  $('recovery-backup').addEventListener('click',run(backupLocal));
+  $('recovery-saved').addEventListener('change',() => {
+    if ($('recovery-saved').checked && !backupMatches()) {
+      $('recovery-saved').checked = false;
+      $('recovery-status').textContent = '请先单独导出当前备份，确认保存后再勾选。';
+    }
+  });
+  async function recover(useCloud) {
+    if (recovering) return;
+    if (!$('recovery-saved').checked || !backupMatches()) {
+      $('recovery-status').textContent = '尚未恢复：先点“导出恢复前备份”，确认文件保存后勾选确认框。';
+      return;
+    }
+    const warning = useCloud ? '将用云端副本替换本机记录并清除尚未上传的修改。只影响当前测试页。确认继续？'
+      : '将按本机快照恢复并修改云端，可能恢复已删除记录或删除本机没有的云端记录。确认执行？';
+    if (!confirm(warning)) return;
+    recovering = true; paused = true; clearTimeout(retryTimer);
+    const controls = ['sync-now','use-cloud','restore-deleted','recovery-backup','rotate-token','range-report','report-history','recovery-saved'];
+    for (const id of controls) $(id).disabled = true;
+    $('recovery-status').textContent = '正在读取云端并核对版本，请等待…';
+    try {
+      connected();
+      if (client.running) await client.running.catch(() => {});
+      if (!backupMatches()) throw new Error('本机记录已改变，请重新保存备份后恢复。');
+      let result = await reconcile(api,useCloud);
+      client = null;
+      if (!useCloud) result = await connected().sync();
+      onRestored();
+      paused = false; backupSignature = null; $('recovery-saved').checked = false;
+      $('sync-status').textContent = `已同步，版本${result.revision}，已采用${useCloud ? '云端' : '本机'}恢复结果。`;
+      $('recovery-status').textContent = '恢复完成，页面数据已更新，无需重新加载。';
+      $('range-status').textContent = '恢复完成；请仅用一个设备新增和修改记录。';
+    } catch (error) {
+      paused = true;
+      $('recovery-status').textContent = `恢复未完成：${error.message}；请保留备份，停止重复点击并反馈此提示。`;
+      $('sync-status').textContent = '自动同步已暂停，请先处理恢复提示。';
+      throw error;
+    } finally {
+      recovering = false;
+      for (const id of controls) $(id).disabled = false;
+    }
+  }
+  $('restore-deleted').addEventListener('click',run(()=>recover(false)));
+  $('use-cloud').addEventListener('click',run(()=>recover(true)));
   $('rotate-token').addEventListener('click',run(async () => {
     connected(); const result = await api('/v1/device/rotate',{});
     $('api-token').value = result.token; client = null;connected();

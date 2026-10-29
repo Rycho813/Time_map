@@ -1,5 +1,7 @@
 # GitHub 固定提交测试部署：前端说明
 
+> 本文保留最初源码部署步骤。手机恢复问题的静态补丁与独立版本更新见 [手机同步恢复说明](phone-sync-recovery.md)，不在原后端构建目录中切换前端 HEAD。
+
 本仓库通过 feature/v1.2 提供固定前端源码；完整服务器审核步骤在 [Time-Management-Agent 的部署说明](https://github.com/Rycho813/Time-Management-Agent/blob/feature/v1.2/docs/github-source-deployment.md)。具体批准的两个 40 位提交以当次验收记录为准，不依赖分支持续指向同一版本。
 
 本次新增 `deploy/check-static.py`，只读检查：Git HEAD 是否等于指定提交、工作区是否干净、13 个必要静态文件及入口依赖是否存在、图标可用，以及 PWA id/scope/start_url 仍为相对路径。它输出静态文件哈希，不复制文件、不修改任何本地记录，不连接后端或第三方 API。

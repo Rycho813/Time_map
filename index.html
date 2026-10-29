@@ -96,8 +96,14 @@
         <label>API地址 <input id="api-base" type="url" placeholder="http://127.0.0.1:8100"></label>
         <label>测试凭据 <input id="api-token" type="password" autocomplete="off"></label>
         <button id="sync-now" class="button secondary">立即同步</button>
+        <div class="recovery-tools">
+          <p class="helper">版本冲突时先单独导出本机备份。确认文件已保存后，再选择恢复方向；采用云端会替换本机尚未上传的修改。</p>
+          <button id="recovery-backup" type="button" class="button secondary">导出恢复前备份</button>
+          <label><input id="recovery-saved" type="checkbox">我已确认当前备份文件保存成功，允许执行所选恢复操作</label>
+          <p id="recovery-status" role="status">尚未执行恢复。</p>
         <button id="restore-deleted" class="button secondary">确认恢复备份中的已删除记录</button>
         <button id="use-cloud" class="button secondary">冲突恢复：采用云端副本</button>
+        </div>
         <button id="rotate-token" class="button secondary">更换本设备凭据</button>
         <p id="sync-status" role="status">未连接，本机数据仍正常保存。</p>
       </details>
