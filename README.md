@@ -163,3 +163,6 @@ npm test
 ## V1.2 开发分支
 
 当前仅为本地模拟开发版本，不应部署到生产。完整需求见 [规格](docs/time_map_spec.md)，已验证范围与未完成项见 [模拟开发说明](docs/mock-development.md)。
+# GitHub 固定提交测试部署
+
+前端固定版本检查及原手机站点保护见 [源码部署说明](docs/github-source-deployment.md)。此阶段只准备与检查静态源码，不发布 GitHub Pages、不修改 DNS/Caddy、不覆盖原本地数据。
