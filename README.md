@@ -166,3 +166,6 @@ npm test
 # GitHub 固定提交测试部署
 
 前端固定版本检查及原手机站点保护见 [源码部署说明](docs/github-source-deployment.md)。此阶段只准备与检查静态源码，不发布 GitHub Pages、不修改 DNS/Caddy、不覆盖原本地数据。
+
+
+V1.2 本机数字PIN便捷解锁见 [使用与安全边界](docs/local-pin.md)，不改变服务器长令牌或手机计时数据。

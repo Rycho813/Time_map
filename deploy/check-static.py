@@ -24,7 +24,7 @@ def check(expected):
     required = ['index.html', 'styles.css', 'manifest.webmanifest', 'sw.js',
                 'assets/icon.svg', 'assets/icon-192.png', 'assets/icon-512.png',
                 'js/app.js', 'js/time.js', 'js/storage.js', 'js/sync.js',
-                'js/log-export.js', 'js/range-ui.js']
+                'js/log-export.js', 'js/range-ui.js', 'js/connection-vault.js']
     for name in required:
         path = ROOT / name
         if not path.is_file() or path.is_symlink():

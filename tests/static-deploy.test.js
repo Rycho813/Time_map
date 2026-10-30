@@ -29,7 +29,7 @@ test('固定前端检查只输出静态清单，不修改检出或包含Git及�
     assert.equal(result.status,0,result.stderr);
     const inventory=JSON.parse(result.stdout);
     assert.equal(inventory.frontend_commit,sha);
-    assert.equal(Object.keys(inventory.static_files).length,13);
+    assert.equal(Object.keys(inventory.static_files).length,14);
     assert.ok(Object.keys(inventory.static_files).every(p=>!p.includes('.git')&&!p.startsWith('docs/')));
     assert.equal(f.git('status','--porcelain'),'');
   } finally {f.cleanup();}

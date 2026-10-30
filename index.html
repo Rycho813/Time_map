@@ -91,10 +91,14 @@
       <div class="button-row"><button id="range-show" class="button secondary">查看区间</button><button id="range-copy" class="button secondary">复制地点日志</button><button id="range-report" class="button primary">生成新报告</button></div>
       <button id="report-history" class="button secondary">查看已有报告</button><div id="history-list"></div>
       <p id="range-status" role="status"></p><pre id="range-output" class="report-output"></pre>
-      <details><summary>连接本地模拟服务（不连接真实业务）</summary>
-        <p class="helper">本阶段仅支持模拟分析，不发送飞书。凭据仅本次页面保留，不写入备份。</p>
+      <details><summary>连接与同步（支持本机PIN解锁）</summary>
+        <p class="helper">仅连接你明确配置的服务。首次填写设备长令牌后可设置本机PIN，以后无需重复粘贴；连接信息不写入计时备份。</p>
         <label>API地址 <input id="api-base" type="url" placeholder="http://127.0.0.1:8100"></label>
-        <label>测试凭据 <input id="api-token" type="password" autocomplete="off"></label>
+        <label>设备凭据 <input id="api-token" type="password" autocomplete="off"></label>
+        <label>本机PIN <input id="connection-pin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="off"></label>
+        <div class="button-row"><button id="pin-save" class="button secondary">设置PIN保存连接</button><button id="pin-unlock" class="button secondary">PIN解锁</button><button id="pin-lock" class="button secondary">锁定连接</button><button id="pin-forget" class="button secondary">忘记本机连接</button></div>
+        <p class="helper">PIN为4至8位数字，仅用于这台手机解锁，不是服务器密码。四位PIN无法抵抗本机密文被复制后的离线猜测，请保留手机锁屏保护。忘记PIN后可重新填写长令牌；不会删除计时数据。</p>
+        <p id="connection-status" role="status"></p>
         <button id="sync-now" class="button secondary">立即同步</button>
         <div class="recovery-tools">
           <p class="helper">版本冲突时先单独导出本机备份。确认文件已保存后，再选择恢复方向；采用云端会替换本机尚未上传的修改。</p>

@@ -1,3 +1,4 @@
+import { hasConnection, rememberConnection, unlockConnection, forgetConnection } from './connection-vault.js';
 import { dateFromKey, localDateKey, moveDay, parseLocalDateTime, toLocalDateTime, segmentsOfRange, dayTotals, formatDuration, formatSyncTime } from './time.js';
 import { exportLog } from './log-export.js';
 import { SyncClient, createApi, reconcile } from './sync.js';
@@ -13,16 +14,19 @@ export function wireRange(getState, onRestored = () => {}) {
   }
   selectDay(-1);
   function bounds() { return [parseLocalDateTime($('range-start').value), parseLocalDateTime($('range-end').value)]; }
+  let unlocked = !hasConnection();
   let saved;
   try { saved=JSON.parse(sessionStorage.getItem('time-map-connection') || 'null'); } catch { sessionStorage.removeItem('time-map-connection'); }
+  if (!unlocked) { saved = null; sessionStorage.removeItem('time-map-connection'); }
   if (saved) { $('api-base').value=saved.base; $('api-token').value=saved.token; }
   function connected() {
+    if (!unlocked) throw new Error('请先用本机PIN解锁连接。');
     const base = $('api-base').value.trim(), token = $('api-token').value.trim();
     const next = `${base}\n${token}`;
     if (!client || next !== identity) {
       api = createApi(base, token);
       client = new SyncClient(api); identity = next;
-      sessionStorage.setItem('time-map-connection',JSON.stringify({base,token}));
+      if (!hasConnection()) sessionStorage.setItem('time-map-connection',JSON.stringify({base,token}));
     }
     return client;
   }
@@ -73,6 +77,34 @@ export function wireRange(getState, onRestored = () => {}) {
     $('range-output').textContent = text;
     if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(text); $('range-status').textContent = '已复制，请完整粘贴到Notion备用页面。'; return; } catch {} }
     $('range-status').textContent = '自动复制不可用，请长按下方文本选择并复制。';
+  }));
+  $('pin-save').addEventListener('click',run(async () => {
+    if (!unlocked) throw new Error('请先解锁已有连接。');
+    connected();
+    await rememberConnection($('connection-pin').value, {base:$('api-base').value.trim(), token:$('api-token').value.trim()});
+    sessionStorage.removeItem('time-map-connection'); $('connection-pin').value = '';
+    $('connection-status').textContent = '已加密保存本机连接；以后进入页面用PIN解锁。不影响计时数据。';
+  }));
+  $('pin-unlock').addEventListener('click',run(async () => {
+    const saved = await unlockConnection($('connection-pin').value);
+    $('api-base').value = saved.base; $('api-token').value = saved.token;
+    $('connection-pin').value = ''; unlocked = true; client = null; $('range-status').textContent = '';
+    $('connection-status').textContent = '连接已解锁；可正常同步。';
+    changed();
+  }));
+  $('pin-lock').addEventListener('click',run(() => {
+    if (!hasConnection()) throw new Error('请先设置本机PIN保存连接。');
+    clearTimeout(retryTimer); unlocked = false; client = null; api = null; identity = null;
+    $('api-token').value = ''; $('api-base').value = ''; $('connection-pin').value = '';
+    sessionStorage.removeItem('time-map-connection');
+    $('connection-status').textContent = '连接已锁定；已发出的请求可能仍会完成，本机计时继续。';
+  }));
+  $('pin-forget').addEventListener('click',run(() => {
+    if (!confirm('仅忘记本机保存的连接，之后需重新填写长令牌。计时记录保留。确认？')) return;
+    forgetConnection(); unlocked = true; clearTimeout(retryTimer); client = null; api = null;
+    $('api-token').value = ''; $('api-base').value = ''; $('connection-pin').value = '';
+    sessionStorage.removeItem('time-map-connection');
+    $('connection-status').textContent = '已忘记本机连接；计时记录未改变。';
   }));
   $('sync-now').addEventListener('click',run(sync));
   for (const [id,offset] of [['range-yesterday',-1],['range-before',-2],['range-three',-3]]) $(id).addEventListener('click',() => {selectDay(offset);});
@@ -185,11 +217,13 @@ export function wireRange(getState, onRestored = () => {}) {
   $('use-cloud').addEventListener('click',run(()=>recover(true)));
   $('rotate-token').addEventListener('click',run(async () => {
     connected(); const result = await api('/v1/device/rotate',{});
+    if (hasConnection()) { forgetConnection(); $('connection-status').textContent = '凭据已更换，请重新设置PIN保存新连接。'; }
     $('api-token').value = result.token; client = null;connected();
     $('sync-status').textContent = '旧凭据已撤销，新凭据已填入本次页面，请安全保存。';
   }));
   window.addEventListener('online',changed);
   document.addEventListener('visibilitychange',() => { if (!document.hidden) changed(); });
+  if (!unlocked) $('connection-status').textContent = '请输入本机PIN解锁连接；本机计时不受影响。';
   changed();
   return { changed };
 }
