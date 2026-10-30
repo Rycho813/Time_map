@@ -4,7 +4,7 @@
  * 当修改了发布代码时，建议把 CACHE_NAME 的 v1 改成 v2、v3…以方便更新。
  */
 
-const CACHE_NAME = 'time-map-shell-v1.2-recovery-1';
+const CACHE_NAME = 'time-map-shell-v1.2-beijing-1';
 const FILES = [
   './', './index.html', './styles.css', './js/app.js', './js/time.js',
   './js/storage.js', './js/log-export.js', './js/sync.js', './js/range-ui.js', './manifest.webmanifest', './assets/icon.svg',

@@ -1,4 +1,4 @@
-import { dateFromKey, localDateKey, moveDay, parseLocalDateTime, toLocalDateTime, segmentsOfRange, dayTotals, formatDuration } from './time.js';
+import { dateFromKey, localDateKey, moveDay, parseLocalDateTime, toLocalDateTime, segmentsOfRange, dayTotals, formatDuration, formatSyncTime } from './time.js';
 import { exportLog } from './log-export.js';
 import { SyncClient, createApi, reconcile } from './sync.js';
 import { syncEnvelope, newId } from './storage.js';
@@ -32,7 +32,7 @@ export function wireRange(getState, onRestored = () => {}) {
     try {
       const e = await connected().sync(); delay = 1000; clearTimeout(retryTimer);
       paused = false;
-      $('sync-status').textContent = `已同步，版本${e.revision}，${e.lastSync || '已核对云端，无待上传变更'}`;
+      $('sync-status').textContent = `已同步，版本${e.revision}，${formatSyncTime(e.lastSync)}`;
       return e;
     } catch (error) { showSyncError(error); throw error; }
   }

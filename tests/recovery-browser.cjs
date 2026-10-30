@@ -66,6 +66,8 @@ const BASE='http://127.0.0.1:18001';
   assert.equal(restored.queue.length,0);assert.equal(restored.revision,3);
   await page.locator('#quick-places button').first().click();
   await page.waitForFunction(()=>document.querySelector('#sync-status').textContent.includes('版本4'));
+  assert.match(await page.locator('#sync-status').textContent(), /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}（北京时间 Asia\/Shanghai）/);
+  assert.doesNotMatch(await page.locator('#sync-status').textContent(), /T\d{2}:\d{2}.*Z/);
   assert.equal(posts,2);assert.equal(cloud.segments.length,1);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   assert.deepEqual(errors,[]);

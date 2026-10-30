@@ -5,6 +5,21 @@
 
 const pad2 = (number) => String(number).padStart(2, '0');
 
+// Only presentation changes: persisted sync instants remain ISO UTC.
+export function formatSyncTime(iso) {
+  if (!iso) return '已核对云端，无待上传变更';
+  // Do not interpret a timezone-less string in the device's local timezone.
+  if (typeof iso !== 'string' || !/(Z|[+-]\d{2}:\d{2})$/i.test(iso)) return '同步时间不可用';
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '同步时间不可用';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+  }).formatToParts(date);
+  const p = Object.fromEntries(parts.map(({type, value}) => [type, value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}（北京时间 Asia/Shanghai）`;
+}
+
 export function localDateKey(date) {
   const d = new Date(date.getTime() + 8 * 3600000);
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
