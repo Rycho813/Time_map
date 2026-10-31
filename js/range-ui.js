@@ -132,7 +132,7 @@ export function wireRange(getState, onRestored = () => {}) {
     for (const day of report.days) {
       lines.push('', day.date);
       for (const p of day.locations) {
-        lines.push(`${p.name}：停留${formatDuration(p.stay_ms)}${report.mode === 'efficiency' ? `，已确认有效${formatDuration(p.effective_ms)}，利用率${p.utilization === null ? '无法准确确定' : (p.utilization * 100).toFixed(1) + '%'}` : ''}`);
+        lines.push(`${p.name}：停留${formatDuration(p.stay_ms)}${report.mode === 'efficiency' ? `，已归属有效${formatDuration(p.effective_ms)}，利用率${p.utilization === null ? '无法准确确定' : (p.utilization * 100).toFixed(1) + '%'}` : ''}`);
         for (const a of p.activities || []) lines.push(`  ${a.event_name}：${a.time_type === 'effective' ? '有效' : a.time_type === 'buffer' ? '缓冲' : '未计入'}${a.matched_start !== undefined ? '，匹配' + formatDuration(a.matched_end-a.matched_start) : '，' + a.duration_min + '分钟'}`);
       }
       lines.push(`路程：${formatDuration(day.transit_ms)}`);
